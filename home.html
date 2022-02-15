@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+  <style>
+      html {
+        display: table;
+        margin: auto;
+      }
+
+      body {
+        vertical-align: middle;
+      }
+
+      .chat-room {
+        background-color: gray;
+        border: 2px solid black;
+        width: 700px;
+        height: 800px;
+        margin-top: 5px;
+        float: left;
+        
+      }
+
+      .user-list {
+        background-color: lightgray;
+        border: 2px solid black;
+        width: 300px;
+        margin-top: 5px;
+        margin-left: 5px;
+        height: 800px;
+        float: left;
+      }
+
+      li.myDiv {
+        background-color: lightgreen;
+        border: 1px solid black;
+        padding: 5px;
+        margin-top: 5px;
+        border-radius: 25px;
+        float: left;
+        clear: both;
+      }
+
+      li.yourDiv {
+        background-color: lightblue;
+        border: 1px solid black;
+        padding: 5px;
+        margin-top: 5px;
+        margin-right: 30px;
+        border-radius: 25px;
+        float: right;
+        clear: both;
+      }
+
+      li.joinRoom {
+        float:left;
+      }
+
+      .messageBox {
+        position:absolute;
+        top:85%;
+        width: 700px;
+        max-width: 650px;
+      }
+      
+      input[type=text] {
+        width: 100%;
+        padding: 12px 20px;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+        border: 2px solid black;
+        border-radius: 4px;
+      }
+
+      .submitButton { font-size: 20px; }
+      
+
+  </style>
+  
+  <body> 
+    <div class='chat-room' id='messageBody' style="overflow-y:auto";>  
+      <header>Chat Room</header> 
+
+      <ul id="messages" style="list-style: none;"></ul>
+    </div>     
+
+    <div class='user-list' id='userListDiv' style="overflow-y:auto">
+      <header>User List</header>
+
+      <ul id="userList" style="list-style: none;"></ul>
+    </div>
+
+    <div class = "messageBox">
+      <form>
+        <input type="text" id="m" placeholder="Message", maxlength="500"/>
+        <input class = "submitButton" type="submit" id="submitButton" value="Send" style="float:left;" />
+      </form>
+    </div>
+
+  <body>
+
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script
+    src="https://code.jquery.com/jquery-3.5.1.js"
+    integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+    crossorigin="anonymous"
+  ></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.26.0/moment.min.js"></script>
+
+  <script>
+    let roomDefault = "general";
+    let userName = prompt("whats your name");
+    let roomName = roomDefault;
+    let ID = "";
+    var socket = io();
+          
+    //send event that user has joined room
+    socket.emit("join lobby", {username : userName, roomname : roomName});
+
+    //receive data from server.
+    socket.on('send data',(data)=>{
+      ID = data.id; //ID will be used later
+      displayJoin(data);
+      console.log(" my ID:" + ID);
+    })
+    $("#m").focus();
+    //when form is submitted, capture the input value and then send it to server
+    document
+      .getElementsByTagName("form")[0]
+      .addEventListener("submit", function (event) {
+        event.preventDefault();
+        socket.emit("chat message", {
+          value: document.getElementById("m").value,
+          user: userName,
+        
+        });
+        document.getElementById("m").value = "";
+      });
+
+    socket.on("chat message", (data) => {
+      console.log(data.data.user + ": " + data.id);
+        displayMessage(data);
+    });
+
+    socket.on("joined room", (data) => {
+      console.log(data.data.name + ": " + data.data.id)
+        displayJoin(data);
+    })
+    
+    socket.on("update user list", (data) => {
+        updateUserList(data);
+      });
+    
+
+    function displayJoin(data) {
+      let authorClass = "";
+      let divClass = ""
+      //verify that the user ID and the message sent ID is similar 
+      if (data.id == ID) {
+        console.log("This person has sent a message")
+        authorClass = "me";
+        divClass = "myDiv";
+
+        const div = document.createElement("div");
+        div.className = divClass;
+
+        const li = document.createElement("li");
+        li.className = divClass;
+        li.style = "max-width:600px; overflow-wrap:break-word;";
+
+        div.innerHTML =
+          '<p class="' + authorClass + '">' + data.username + ' has joined ' + data.roomname + "</p>";
+
+        li.appendChild(div);
+        document.getElementById("messages").appendChild(li);
+
+        var messageBody = document.querySelector('#messageBody');
+        messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+
+      } else {
+        authorClass = "you";
+        divClass = "yourDiv";
+
+        const div = document.createElement("div");
+        div.className = divClass;
+
+        const li = document.createElement("li");
+        li.className = divClass;
+        li.style = "max-width:600px; overflow-wrap:break-word;";
+
+        div.innerHTML =
+          '<p class="' + authorClass + '">' + data.data.username + ' has joined ' + data.data.roomname + "</p>";
+
+        li.appendChild(div);
+        document.getElementById("messages").appendChild(li);
+
+        var messageBody = document.querySelector('#messageBody');
+        messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+      }
+    }
+
+    function displayMessage(data) {
+      let authorClass = "";
+      let divClass = ""
+      //verify that the user ID and the message sent ID is similar 
+      if (data.id == ID) {
+        console.log("This person has sent a message")
+        authorClass = "me";
+        divClass = "myDiv";
+
+        const div = document.createElement("div");
+        div.className = divClass;
+
+        const li = document.createElement("li");
+        li.className = divClass;
+        li.style = "max-width:600px; overflow-wrap:break-word;";
+
+        div.innerHTML =
+          '<p class="' + authorClass + '">' + data.data.user + ' (' + moment().format("hh:mm") + ')' + "</p>" 
+          +'<p class="message"> ' + data.data.value + "</p>";
+
+        li.appendChild(div);
+        document.getElementById("messages").appendChild(li);
+
+        var messageBody = document.querySelector('#messageBody');
+        messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+
+      } else {
+        authorClass = "you";
+        divClass = "yourDiv";
+
+        const div = document.createElement("div");
+        div.className = divClass;
+
+        const li = document.createElement("li");
+        li.className = divClass;
+        li.style = "max-width:600px; overflow-wrap:break-word;";
+
+        div.innerHTML =
+          '<p class="' + authorClass + '">' + data.data.user + ' (' + moment().format("hh:mm") + ')' + "</p>" 
+          +'<p class="message"> ' + data.data.value + "</p>";
+
+        li.appendChild(div);
+        document.getElementById("messages").appendChild(li);
+
+        var messageBody = document.querySelector('#messageBody');
+        messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+      }
+      
+      //scroll to the bottom
+      //window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function updateUserList(data) {    
+      let list = document.getElementById("userList");
+      list.innerHTML = "";
+
+      data.userlist.forEach(element => {
+        let li = document.createElement("li");
+        li.style = "max-width:600px; overflow-wrap:break-word;";
+        li.innerText = element.username;
+        list.appendChild(li);
+      });   
+
+    }
+  </script>
+</html>
